@@ -15,13 +15,13 @@
 				@input="onTextChange"
 			></textarea>
 			<div class="actions">
-				<button class="btn primary" :disabled="items.length === 0" @click="randomize">Randomize</button>
-				<button class="btn" :disabled="items.length === 0" @click="clearChoice">Clear</button>
+				<button class="btn primary" :disabled="items.length === 0 || isShuffling" @click="randomize">Randomize</button>
+				<button class="btn" :disabled="items.length === 0 || isShuffling" @click="clearChoice">Clear</button>
 				<span class="count">{{ items.length }} items</span>
 			</div>
-			<div v-if="currentItem" class="result">
+			<div v-if="displayedItem" class="result" :class="{ animating: isShuffling }">
 				<span class="label">Chosen:</span>
-				<span class="value">{{ currentItem }}</span>
+				<span class="value">{{ displayedItem }}</span>
 			</div>
 		</div>
 	</section>
@@ -65,6 +65,15 @@ const currentItem = computed(() => {
 	return items.value[i] ?? ''
 })
 
+const isShuffling = ref(false)
+const tempIndex = ref<number | null>(null)
+const displayedItem = computed(() => {
+	if (isShuffling.value && tempIndex.value != null) {
+		return items.value[tempIndex.value] ?? ''
+	}
+	return currentItem.value
+})
+
 function onTextChange() {
 	// When text changes, reset last choice if it no longer exists
 	const updated: Partial<Panel> = { text: localText.value }
@@ -78,9 +87,21 @@ function onTextChange() {
 }
 
 function randomize() {
-	if (items.value.length === 0) return
-	const index = Math.floor(Math.random() * items.value.length)
-	emit('update', { lastChoiceIndex: index })
+	if (items.value.length === 0 || isShuffling.value) return
+	isShuffling.value = true
+	let intervalId: number | undefined
+	const shuffle = () => {
+		tempIndex.value = Math.floor(Math.random() * items.value.length)
+	}
+	shuffle()
+	intervalId = window.setInterval(shuffle, 70)
+	window.setTimeout(() => {
+		if (intervalId) window.clearInterval(intervalId)
+		const finalIndex = Math.floor(Math.random() * items.value.length)
+		tempIndex.value = null
+		isShuffling.value = false
+		emit('update', { lastChoiceIndex: finalIndex })
+	}, 1000)
 }
 
 function clearChoice() {
@@ -91,6 +112,7 @@ function clearChoice() {
 <style scoped>
 .panel { border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; background: #fff; }
 .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+.panel-actions { display: flex; gap: 8px; }
 .panel-body { padding: 12px; display: grid; gap: 10px; }
 
 textarea {
@@ -108,6 +130,57 @@ textarea {
 .result { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; display: flex; gap: 8px; align-items: center; }
 .result .label { color: #475569; font-weight: 600; }
 .result .value { font-weight: 700; }
+
+.result.animating { 
+
+	animation: bounce-left 0.8s both;
+
+}
+/**
+ * ----------------------------------------
+ * animation bounce-left
+ * ----------------------------------------
+ */
+ @keyframes bounce-left {
+  0% {
+    transform: translateY(-48px);
+    animation-timing-function: ease-in;
+    opacity: 1;
+  }
+  24% {
+    opacity: 1;
+  }
+  40% {
+    transform: translateY(-26px);
+    animation-timing-function: ease-in;
+  }
+  65% {
+    transform: translateY(-13px);
+    animation-timing-function: ease-in;
+  }
+  82% {
+    transform: translateY(-6.5px);
+    animation-timing-function: ease-in;
+  }
+  93% {
+    transform: translateY(-4px);
+    animation-timing-function: ease-in;
+  }
+  25%,
+  55%,
+  75%,
+  87%,
+  98% {
+    transform: translateY(0px);
+    animation-timing-function: ease-out;
+  }
+  100% {
+    transform: translateY(0px);
+    animation-timing-function: ease-out;
+    opacity: 1;
+  }
+}
+
 
 .btn { border: 1px solid #d0d7de; background: #fff; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-weight: 600; }
 .btn:hover { background: #f6f8fa; }
