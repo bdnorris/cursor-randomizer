@@ -10,6 +10,9 @@
 			<div class="header-actions">
 				<button class="btn primary" @click="addPanel">Add Panel</button>
 				<button class="btn" @click="resetAll">Reset All</button>
+				<button class="btn" @click="exportState">Export JSON</button>
+				<button class="btn" @click="triggerImport">Import JSON</button>
+				<input ref="fileInput" type="file" accept="application/json,.json" style="display:none" @change="onFileChange" />
 			</div>
 		</header>
 		<main class="panels">
@@ -50,6 +53,7 @@ function generateId(): string {
 
 const panels = ref<PanelState[]>([])
 const title = ref<string>('Randomizer')
+const fileInput = ref<HTMLInputElement | null>(null)
 
 function save() {
 	const payload = { title: title.value, panels: panels.value }
@@ -136,6 +140,69 @@ watch(title, () => save())
 watchEffect(() => {
 	document.title = title.value ? `${title.value} · Randomizer` : 'Randomizer'
 })
+
+function exportState() {
+	const data = { title: title.value, panels: panels.value }
+	const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+	const url = URL.createObjectURL(blob)
+	const a = document.createElement('a')
+	const safeTitle = title.value?.trim() ? title.value.trim().replace(/[^a-z0-9_-]+/gi, '-') : 'randomizer'
+	a.href = url
+	a.download = `${safeTitle}.json`
+	document.body.appendChild(a)
+	a.click()
+	document.body.removeChild(a)
+	URL.revokeObjectURL(url)
+}
+
+function triggerImport() {
+	fileInput.value?.click()
+}
+
+function isValidPanel(p: any): p is PanelState {
+	return p && typeof p === 'object' && typeof p.id === 'string' && typeof p.text === 'string' && ('title' in p ? typeof p.title === 'string' : true)
+}
+
+function onFileChange(e: Event) {
+	const input = e.target as HTMLInputElement
+	const file = input.files && input.files[0]
+	if (!file) return
+	const reader = new FileReader()
+	reader.onload = () => {
+		try {
+			const parsed = JSON.parse(String(reader.result || ''))
+			let nextTitle = 'Randomizer'
+			let nextPanels: PanelState[] = []
+			if (Array.isArray(parsed)) {
+				nextPanels = parsed.filter(isValidPanel).map((p: any) => ({
+					id: p.id || generateId(),
+					title: typeof p.title === 'string' ? p.title : 'Items',
+					text: typeof p.text === 'string' ? p.text : '',
+					lastChoiceIndex: p.lastChoiceIndex ?? null
+				}))
+			} else if (parsed && typeof parsed === 'object') {
+				nextTitle = typeof parsed.title === 'string' ? parsed.title : 'Randomizer'
+				const inputPanels = Array.isArray(parsed.panels) ? parsed.panels : []
+				nextPanels = inputPanels.filter(isValidPanel).map((p: any) => ({
+					id: p.id || generateId(),
+					title: typeof p.title === 'string' ? p.title : 'Items',
+					text: typeof p.text === 'string' ? p.text : '',
+					lastChoiceIndex: p.lastChoiceIndex ?? null
+				}))
+			}
+			if (nextPanels.length === 0) {
+				nextPanels = [createDefaultPanel()]
+			}
+			title.value = nextTitle
+			panels.value = nextPanels
+			save()
+		} catch {
+			// ignore invalid file
+		}
+		if (fileInput.value) fileInput.value.value = ''
+	}
+	reader.readAsText(file)
+}
 </script>
 
 <style scoped>
