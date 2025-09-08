@@ -37,6 +37,7 @@ import RandomizerPanel from './components/RandomizerPanel.vue'
 
 type PanelState = {
 	id: string
+	title: string
 	text: string
 	lastChoiceIndex: number | null
 }
@@ -63,16 +64,18 @@ function load() {
 			if (Array.isArray(parsed)) {
 				// Back-compat: old schema stored panels array only
 				title.value = 'Randomizer'
-				panels.value = (parsed as PanelState[]).map(p => ({
+				panels.value = (parsed as any[]).map((p: any) => ({
 					id: p.id || generateId(),
+					title: typeof p.title === 'string' ? p.title : 'Items',
 					text: typeof p.text === 'string' ? p.text : '',
 					lastChoiceIndex: p.lastChoiceIndex ?? null
 				}))
 			} else if (parsed && typeof parsed === 'object') {
 				title.value = typeof parsed.title === 'string' ? parsed.title : 'Randomizer'
-				const inputPanels = Array.isArray(parsed.panels) ? parsed.panels as PanelState[] : []
-				panels.value = inputPanels.map(p => ({
+				const inputPanels = Array.isArray(parsed.panels) ? (parsed.panels as any[]) : []
+				panels.value = inputPanels.map((p: any) => ({
 					id: p.id || generateId(),
+					title: typeof p.title === 'string' ? p.title : 'Items',
 					text: typeof p.text === 'string' ? p.text : '',
 					lastChoiceIndex: p.lastChoiceIndex ?? null
 				}))
@@ -91,7 +94,7 @@ function load() {
 }
 
 function createDefaultPanel(): PanelState {
-	return { id: generateId(), text: '', lastChoiceIndex: null }
+	return { id: generateId(), title: 'Items', text: '', lastChoiceIndex: null }
 }
 
 function addPanel() {
@@ -104,6 +107,7 @@ function duplicatePanel(id: string) {
 	const panel = panels.value[idx]
 	panels.value.splice(idx + 1, 0, {
 		id: generateId(),
+		title: panel.title,
 		text: panel.text,
 		lastChoiceIndex: panel.lastChoiceIndex
 	})

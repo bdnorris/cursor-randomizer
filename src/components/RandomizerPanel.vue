@@ -1,7 +1,13 @@
 <template>
 	<section class="panel">
 		<header class="panel-header">
-			<h2>Items</h2>
+			<input
+				class="panel-title"
+				v-model="localTitle"
+				@input="onTitleChange"
+				placeholder="Items"
+				aria-label="Panel title"
+			/>
 			<div class="panel-actions">
 				<button class="btn" @click="$emit('duplicate')" title="Duplicate">Duplicate</button>
 				<button class="btn danger" @click="$emit('remove')" title="Remove">Remove</button>
@@ -32,6 +38,7 @@ import { computed, ref, watch } from 'vue'
 
 type Panel = {
 	id: string
+	title: string
 	text: string
 	lastChoiceIndex: number | null
 }
@@ -44,11 +51,19 @@ const emit = defineEmits<{
 }>()
 
 const localText = ref(props.panel.text)
+const localTitle = ref(props.panel.title)
 
 watch(
 	() => props.panel.text,
 	(newText) => {
 		if (newText !== localText.value) localText.value = newText
+	}
+)
+
+watch(
+	() => props.panel.title,
+	(newTitle) => {
+		if (newTitle !== localTitle.value) localTitle.value = newTitle
 	}
 )
 
@@ -86,6 +101,11 @@ function onTextChange() {
 	emit('update', updated)
 }
 
+function onTitleChange() {
+	const updated: Partial<Panel> = { title: localTitle.value }
+	emit('update', updated)
+}
+
 function randomize() {
 	if (items.value.length === 0 || isShuffling.value) return
 	isShuffling.value = true
@@ -114,6 +134,21 @@ function clearChoice() {
 .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
 .panel-actions { display: flex; gap: 8px; }
 .panel-body { padding: 12px; display: grid; gap: 10px; }
+
+.panel-title {
+	flex: 1 1 auto;
+	font-size: 18px;
+	font-weight: 700;
+	border: 1px solid transparent;
+	background: transparent;
+	padding: 4px 6px;
+	border-radius: 6px;
+}
+.panel-title:focus {
+	outline: none;
+	border-color: #d0d7de;
+	background: #fff;
+}
 
 textarea {
 	width: 100%;
