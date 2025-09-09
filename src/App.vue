@@ -85,24 +85,35 @@ function load() {
 				}))
 			} else {
 				title.value = 'Randomizer'
-				panels.value = [createDefaultPanel()]
+				panels.value = [createDefaultPanel(true)]
 			}
 		} else {
 			title.value = 'Randomizer'
-			panels.value = [createDefaultPanel()]
+			panels.value = [createDefaultPanel(true)]
 		}
 	} catch {
 		title.value = 'Randomizer'
-		panels.value = [createDefaultPanel()]
+		panels.value = [createDefaultPanel(true)]
 	}
 }
 
-function createDefaultPanel(): PanelState {
-	return { id: generateId(), title: 'Items', text: '', lastChoiceIndex: null }
+function createDefaultPanel(prefill: boolean = false): PanelState {
+	const defaultText = [
+		'Welcome! Type or paste one item per line.',
+		'- Add multiple panels with “Add Panel”.',
+		'- Click Randomize to pick one.',
+		'- Edit panel titles and the page title.',
+		'- Data auto-saves to your browser (localStorage).',
+		'- Export/Import JSON from the header.',
+		'- Duplicate or Remove panels as needed.',
+		'- Use Clear to remove the last choice.'
+	].join('\n')
+	return { id: generateId(), title: 'Items', text: prefill ? defaultText : '', lastChoiceIndex: null }
 }
 
 function addPanel() {
-	panels.value.push(createDefaultPanel())
+	const shouldPrefill = panels.value.length === 0
+	panels.value.push(createDefaultPanel(shouldPrefill))
 }
 
 function duplicatePanel(id: string) {
@@ -191,7 +202,7 @@ function onFileChange(e: Event) {
 				}))
 			}
 			if (nextPanels.length === 0) {
-				nextPanels = [createDefaultPanel()]
+				nextPanels = [createDefaultPanel(true)]
 			}
 			title.value = nextTitle
 			panels.value = nextPanels
